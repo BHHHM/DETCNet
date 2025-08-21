@@ -1,0 +1,76 @@
+import os
+import torch
+import torchvision.transforms as transforms
+import torch.nn as nn
+import matplotlib.pyplot as plt
+import cv2
+import numpy as np
+
+# 定义是否使用GPU
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# 定义数据预处理方式
+transform = transforms.Compose([
+    transforms.ToTensor(),
+])
+
+# 定义LeNet模型（只保留卷积层部分）
+class FeatureExtractor(nn.Module):
+    def __init__(self):
+        super(FeatureExtractor, self).__init__()
+        self.conv1 = nn.Sequential(
+            # nn.Conv2d(3, 16, kernel_size=5, stride=1, padding=2),
+            nn.Conv2d(3, 16, kernel_size=1),
+            nn.ReLU(),
+            # nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+        # self.conv2 = nn.Sequential(
+        #     nn.Conv2d(32, 64, 5, 1, 2),
+        #     nn.ReLU(),
+        #     nn.MaxPool2d(2, 2)
+        # )
+
+    def forward(self, x):
+        x = self.conv1(x)
+        # x = self.conv2(x)
+        return x
+
+# 图像预处理函数
+def process_image(image_path):
+    image = cv2.imread(image_path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = cv2.resize(image, (256, 256))
+    return transform(image).unsqueeze(0).to(device)
+
+# 特征可视化函数（改进版）
+def visualize_and_save_features(feature_maps, save_dir):
+    feature_maps_normalized = feature_maps.cpu().detach().numpy()[0]
+    # 归一化特征图以增强对比度
+    feature_maps_normalized = (feature_maps_normalized - feature_maps_normalized.min()) / \
+                              (feature_maps_normalized.max() - feature_maps_normalized.min())
+
+    # 确保保存目录存在
+    os.makedirs(save_dir, exist_ok=True)
+
+    # 保存并显示每个通道的特征图
+    num_features = feature_maps_normalized.shape[0]
+    for i in range(num_features):
+        # 保存特征图
+        save_path = os.path.join(save_dir, f"feature_map_{i}.png")
+        plt.imsave(save_path, feature_maps_normalized[i], cmap='jet')
+
+        # 可选：显示特征图
+        # plt.figure(figsize=(10, 10))
+        # plt.imshow(feature_maps_normalized[i], cmap='jet')
+        # plt.axis('off')
+        # plt.title(f"Feature Map {i}")
+        # plt.show()
+
+# 主函数
+if __name__ == "__main__":
+    pic_dir = r'F:\AAABHM\GuiLin\tool\hunhe_382\final_blended_image_1.jpg'
+    save_dir = r'F:\AAABHM\GuiLin\tool\feature_maps387'  # 保存特征图的目录
+    img = process_image(pic_dir)
+    model = FeatureExtractor().to(device)
+    features = model(img)
+    visualize_and_save_features(features, save_dir)

@@ -1,0 +1,5 @@
+已经将predict改成批量操作
+
+Unet（主页的）的底层unet是nets.unet 要后期修改改那个。注意两个unet中的backbone要一致
+
+要进行模型的魔改，就要对nets.unet进行更改
